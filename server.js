@@ -11,7 +11,7 @@ const MongoConnnection = require('./config/mongooseConection')
 const productsAccsess = new MongoConnnection()
 const MongoConnnectionChat = require('./config/mongooseConectionChat')
 const chatAccess = new MongoConnnectionChat()
-
+const { normalize, schema, denormalize } = require('normalizr')
 
 
 const httpServer = http.createServer(app)
@@ -47,9 +47,28 @@ io.on('connection', async (socket) => {
 
     })
     
-
     socket.emit('messages', await chatAccess.getMessages());
-
+    const getAllMessages = await chatAccess.getMessages()
+    const chatOriginal = {
+        id: 'abc123',
+        nombre: 'Chat general',
+        mensajes: getAllMessages
+    }
+    const authorSchema = new schema.Entity('author')
+    const textSchema = new schema.Entity('messages', {
+        id: { type: String },
+        author: authorSchema,
+        text: ''
+    });
+    const chatSchema = new schema.Entity('chats', {
+        id: { type: String },
+        nombre: '',
+        mensajes: [textSchema]
+    })
+    const chatNormalized = normalize(chatOriginal, chatSchema)
+    console.log(chatNormalized)
+    const chatDenormalized = denormalize(chatOriginal, chatNormalized)
+    console.log(chatDenormalized)
     socket.on('update-message', async message => {
 
     await chatAccess.insertMessage(message)

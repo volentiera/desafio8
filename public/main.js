@@ -50,7 +50,7 @@ socket.on('products',(products)=>{
 
 btn.addEventListener('click', (e) => {
     e.preventDefault()
-    const author = {id: inputId.value, nombre: inputNombre.value, apellido: inputApellido.value, edad: inputEdad.value, alias: inputAlias.value, avatar: inputAvatar.value}
+    const author = {email: inputId.value, nombre: inputNombre.value, apellido: inputApellido.value, edad: inputEdad.value, alias: inputAlias.value, avatar: inputAvatar.value}
     const texto = inputTexto.value
     socket.emit('update-message', {
         author: author,
@@ -69,7 +69,7 @@ socket.on('messages', (messages) => {
                     <div
                         style="text-align: end; font-style: italic; font-weight: 400"
                         class="has-text-dark">
-                    ${message.author.nombre} - ${message.author.id}
+                    ${message.author.nombre} - ${message.author.email}
                     </div>
             </div>`
         } else {
@@ -84,7 +84,7 @@ socket.on('messages', (messages) => {
             style="text-align: end; font-style: italic; font-weight: 400"
             class="has-text-dark"
             >
-            ${message.author.nombre} - ${message.author.id}
+            ${message.author.nombre} - ${message.author.email}
             </div>
         </div>`
         }

@@ -12,6 +12,7 @@ const productsAccsess = new MongoConnnection()
 const MongoConnnectionChat = require('./config/mongooseConectionChat')
 const chatAccess = new MongoConnnectionChat()
 const { normalize, schema, denormalize } = require('normalizr')
+const util = require('util')
 
 
 const httpServer = http.createServer(app)
@@ -34,7 +35,9 @@ app.use(routeProductsTest)
 app.get('/', (req , res)=>{
     res.redirect('/api/productos')
 })
-
+function print(obj){
+    console.log(util.inspect(obj, false, null, true))
+}
 io.on('connection', async (socket) => {
     console.log('New user connected. Socket ID : ', socket.id);
 
@@ -49,28 +52,33 @@ io.on('connection', async (socket) => {
     
     socket.emit('messages', await chatAccess.getMessages());
     const getAllMessages = await chatAccess.getMessages()
+    
+    const newGetAllMessages = getAllMessages.map((e,index) => {
+        const allMessagesObject ={
+            id: index,
+            author: e.author,
+            text: e.text
+        }
+    return allMessagesObject
+    })
     const chatOriginal = {
         id: 'abc123',
-        nombre: 'Chat general',
-        mensajes: getAllMessages
+        mensajes: newGetAllMessages
     }
-    const authorSchema = new schema.Entity('author')
-    const textSchema = new schema.Entity('messages', {
-        id: { type: String },
-        author: authorSchema,
-        text: ''
-    });
-    const chatSchema = new schema.Entity('chats', {
-        id: { type: String },
-        nombre: '',
-        mensajes: [textSchema]
-    })
-    const chatNormalized = normalize(chatOriginal, chatSchema)
-    console.log(chatNormalized)
-    const chatDenormalized = denormalize(chatOriginal, chatNormalized)
-    console.log(chatDenormalized)
+    const schemaAuthor = new schema.Entity('author', {}, {idAttribute: 'email'});
+    const schemaMensaje = new schema.Entity('text', { author: schemaAuthor })
+    const schemaMensajes = new schema.Entity('posts', {mensajes: [schemaMensaje] })
+    const normalizarMensajes = normalize(chatOriginal, schemaMensajes)
+    print(normalizarMensajes)
+    console.log(JSON.stringify(newGetAllMessages).length)
+    console.log(JSON.stringify(normalizarMensajes).length)
+    
+    const chatDenormalized = denormalize(chatOriginal, normalizarMensajes)
+    console.log(JSON.stringify(chatDenormalized).length)
+    print(chatDenormalized)
+    
+    
     socket.on('update-message', async message => {
-
     await chatAccess.insertMessage(message)
     io.sockets.emit('messages', await chatAccess.getMessages());
 

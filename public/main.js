@@ -1,4 +1,6 @@
+
 const socket = io()
+
 
 const div = document.getElementById('messages')
 const btn = document.getElementById('enviar')
@@ -57,8 +59,8 @@ btn.addEventListener('click', (e) => {
         text: texto
     });
 });
-socket.on('messages', (messages) => {
-    div.innerHTML = messages.map(message => {
+socket.on('messages', (messages, compr) => {
+    div.innerHTML = messages.mensajes.map(message => {
         if (message.author.id === inputId.value) {
             return `<div class="notification is-link is-light"
                 style="text-align: justify; margin-left: 35px;     padding: 15px;
@@ -69,7 +71,7 @@ socket.on('messages', (messages) => {
                     <div
                         style="text-align: end; font-style: italic; font-weight: 400"
                         class="has-text-dark">
-                    ${message.author.nombre} - ${message.author.email}
+                    ${message.author.nombre} - ${message.author.email} - ${compr}
                     </div>
             </div>`
         } else {
@@ -84,7 +86,7 @@ socket.on('messages', (messages) => {
             style="text-align: end; font-style: italic; font-weight: 400"
             class="has-text-dark"
             >
-            ${message.author.nombre} - ${message.author.email}
+            ${message.author.nombre} - ${message.author.email} - ${compr} comprimido
             </div>
         </div>`
         }

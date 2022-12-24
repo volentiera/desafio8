@@ -35,9 +35,6 @@ app.use(routeProductsTest)
 app.get('/', (req , res)=>{
     res.redirect('/api/productos')
 })
-function print(obj){
-    console.log(util.inspect(obj, false, null, true))
-}
 io.on('connection', async (socket) => {
     console.log('New user connected. Socket ID : ', socket.id);
 
@@ -50,38 +47,36 @@ io.on('connection', async (socket) => {
 
     })
     
-    socket.emit('messages', await chatAccess.getMessages());
-    const getAllMessages = await chatAccess.getMessages()
-    
-    const newGetAllMessages = getAllMessages.map((e,index) => {
-        const allMessagesObject ={
-            id: index,
-            author: e.author,
-            text: e.text
+    function normalizeAll (getAllMessages){
+        const newGetAllMessages = getAllMessages.map((e,index) => {
+            const allMessagesObject ={
+                id: index,
+                author: e.author,
+                text: e.text
+            }
+        return allMessagesObject
+        })
+        const chatOriginal = {
+            id: 'abc123',
+            mensajes: newGetAllMessages
         }
-    return allMessagesObject
-    })
-    const chatOriginal = {
-        id: 'abc123',
-        mensajes: newGetAllMessages
+        const schemaAuthor = new schema.Entity('author', {}, {idAttribute: 'email'});
+        const schemaMensaje = new schema.Entity('text', { author: schemaAuthor })
+        const schemaMensajes = new schema.Entity('posts', {mensajes: [schemaMensaje] })
+        const normalizarMensajes = normalize(chatOriginal, schemaMensajes)
+        const sinNorm = JSON.stringify(newGetAllMessages).length
+        const norm = JSON.stringify(normalizarMensajes).length
+        const porcentajeCompr = 100 - ((norm*100)/sinNorm)
+        const chatDenormalized = denormalize(chatOriginal, normalizarMensajes)
+        const compr = Math.round(porcentajeCompr*100)/100
+        return {chatDenormalized , compr}
     }
-    const schemaAuthor = new schema.Entity('author', {}, {idAttribute: 'email'});
-    const schemaMensaje = new schema.Entity('text', { author: schemaAuthor })
-    const schemaMensajes = new schema.Entity('posts', {mensajes: [schemaMensaje] })
-    const normalizarMensajes = normalize(chatOriginal, schemaMensajes)
-    print(normalizarMensajes)
-    console.log(JSON.stringify(newGetAllMessages).length)
-    console.log(JSON.stringify(normalizarMensajes).length)
-    
-    const chatDenormalized = denormalize(chatOriginal, normalizarMensajes)
-    console.log(JSON.stringify(chatDenormalized).length)
-    print(chatDenormalized)
-    
-    
+    const getAllMessages = await chatAccess.getMessages()
+    socket.emit('messages', normalizeAll(getAllMessages).chatDenormalized, normalizeAll(getAllMessages).compr )
     socket.on('update-message', async message => {
-    await chatAccess.insertMessage(message)
-    io.sockets.emit('messages', await chatAccess.getMessages());
-
+        await chatAccess.insertMessage(message)
+        const getAllMessages = await chatAccess.getMessages()
+        io.sockets.emit('messages', normalizeAll(getAllMessages).chatDenormalized, normalizeAll(getAllMessages).compr );
     })
     socket.on('disconnect', () => {
         console.log('User was disconnected');
